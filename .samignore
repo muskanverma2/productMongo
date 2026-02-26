@@ -1,0 +1,43 @@
+# SAM ignore file - files/folders to exclude from SAM build
+
+# Source files (keep only what's needed)
+src/server.js
+src/app.js
+
+# Development files
+*.md
+!README.md
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Test files
+**/*.test.js
+**/*.spec.js
+test/
+tests/
+__tests__/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Environment files (will be set via Lambda environment variables)
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

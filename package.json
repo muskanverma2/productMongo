@@ -1,0 +1,34 @@
+{
+  "name": "gyg_mongo",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "sam:build": "sam build",
+    "sam:local": "sam local start-api --port 5000",
+    "sam:deploy": "sam deploy --guided",
+    "sam:validate": "sam validate",
+    "sam:package": "sam package"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "moment": "^2.30.1",
+    "mongoose": "^9.1.5",
+    "mongoose-sequence": "^6.0.1",
+    "serverless-http": "^4.0.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

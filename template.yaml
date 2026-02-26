@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: GYG Product Lambda API - Serverless Express Application
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        NODE_ENV: production
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      MaxAge: "'600'"
+
+Parameters:
+  MongoUri:
+    Type: String
+    Description: MongoDB connection string
+    # 👇 IMPORTANT: Docker-safe default for local SAM
+    Default: mongodb://host.docker.internal:27017/gyg_product
+
+  Stage:
+    Type: String
+    Description: Deployment stage
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+
+  # ---------------- MAIN ----------------
+  MainLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-main'
+      CodeUri: .
+      Handler: src/handlers/main.handler
+      Environment:
+        Variables:
+          MONGO_URI: !Ref MongoUri
+      Events:
+        ApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /{proxy+}
+            Method: ANY
+        ApiRootGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /
+            Method: GET
+
+  # ---------------- PRODUCT ----------------
+  ProductLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-product'
+      CodeUri: .
+      Handler: src/handlers/product.handler
+      Environment:
+        Variables:
+          MONGO_URI: !Ref MongoUri
+      Events:
+        ProductApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/product/{proxy+}
+            Method: ANY
+        ProductApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/product
+            Method: ANY
+
+  # ---------------- AVAILABILITY ----------------
+  AvailabilityLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-availability'
+      CodeUri: .
+      Handler: src/handlers/availability.handler
+      Environment:
+        Variables:
+          MONGO_URI: !Ref MongoUri
+      Events:
+        AvailabilityApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/availability/{proxy+}
+            Method: ANY
+        AvailabilityApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/availability
+            Method: ANY
+
+  # ---------------- RECURRENCE ----------------
+  RecurrenceLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-recurrence'
+      CodeUri: .
+      Handler: src/handlers/recurrence.handler
+      Environment:
+        Variables:
+          MONGO_URI: !Ref MongoUri
+      Events:
+        RecurrenceApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/recurrence/{proxy+}
+            Method: ANY
+        RecurrenceApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/recurrence
+            Method: ANY
+
+  # ---------------- GYG AVAILABILITY ----------------
+  GygAvailabilityLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-gyg-availability'
+      CodeUri: .
+      Handler: src/handlers/gygAvailability.handler
+      Environment:
+        Variables:
+          MONGO_URI: !Ref MongoUri
+      Events:
+        GygAvailabilityApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/gygAvailability/{proxy+}
+            Method: ANY
+        GygAvailabilityApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /v1/gygAvailability
+            Method: ANY
+
+Outputs:
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+
+  MainLambdaFunctionArn:
+    Description: Main Lambda Function ARN
+    Value: !GetAtt MainLambdaFunction.Arn
+
+  ProductLambdaFunctionArn:
+    Description: Product Lambda Function ARN
+    Value: !GetAtt ProductLambdaFunction.Arn
+
+  AvailabilityLambdaFunctionArn:
+    Description: Availability Lambda Function ARN
+    Value: !GetAtt AvailabilityLambdaFunction.Arn
+
+  RecurrenceLambdaFunctionArn:
+    Description: Recurrence Lambda Function ARN
+    Value: !GetAtt RecurrenceLambdaFunction.Arn
+
+  GygAvailabilityLambdaFunctionArn:
+    Description: GYG Availability Lambda Function ARN
+    Value: !GetAtt GygAvailabilityLambdaFunction.Arn
