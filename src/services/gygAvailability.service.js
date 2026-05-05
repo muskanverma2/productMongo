@@ -68,7 +68,7 @@ const getAvailability = async (query) => {
     const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
     console.log("startDate------------",startDate)
     const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
-    console.log(endDate,"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+    console.log("endDate-----------------",endDate)
     if (!startDate.isValid() || !endDate.isValid()) {
       return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Invalid date format.' };
     }
@@ -86,6 +86,7 @@ const getAvailability = async (query) => {
       return { data: { availabilities: [] } };
     }
 
+    console.log("availabilities----------------------------------------",availabilities)
     if (!availabilities.length) return { data: { availabilities: [] } };
 
     const now = dayjs.utc();

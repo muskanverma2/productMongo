@@ -124,14 +124,18 @@ const deleteAvailabilityProductId = async (recurrenceRuleIds) => {
 
 // Get Availability by Product ID with optional date filter
 const getAvailabilityByProductId = async (productId, startDate, endDate) => {
+  console.log("this endpoint is calling")
   try {
+    console.log("this try  is calling")
     const recurrenceForProductIds = await recurrenceService.getRecurrenceByProductId(productId);
-    console.log(recurrenceForProductIds,"PPPPPPPPPPPPPPPPPPPPPPPPP")
+    console.log("recurrenceForProductIds-------------------------",recurrenceForProductIds)
     const product = await productService.getProductById(productId);
+    console.log("productAvailability---------------------------",product)
 
     if (!product) throw new Error("Product not found");
 
     const times = product.times;
+    console.log("times-------------------------",times)
     const recurrenceController = require("../controllers/recurrence.controller");
 
     // generate availability for each recurrence
@@ -142,6 +146,8 @@ const getAvailabilityByProductId = async (productId, startDate, endDate) => {
         return await recurrenceController.createAvailabilityForRecurrence(data, times, recurrenceId);
       })
     );
+
+    console.log("availabilities----------------------",availabilities)
 
     // flatten and filter by startDate/endDate
     const filteredAvailabilities = availabilities.flat().filter((availability) => {

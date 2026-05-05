@@ -2,7 +2,8 @@ const { productService, availabilityService } = require("../services");
 const { Recurrence,Product } = require("../models");
 const axios = require("axios");
 const { randomUUID } = require("crypto");
-const MYSQL_BASE_URL = "http://192.168.29.95:3000/kan/product";
+// const MYSQL_BASE_URL = "http://192.168.29.95:3000/kan/product";
+const MYSQL_BASE_URL = "http://192.168.29.178:3000/kan/product";
 
 const createProduct = async (req, res) => {
   try {
@@ -12,10 +13,15 @@ const createProduct = async (req, res) => {
       data.syncId = randomUUID();
     }
     const product = await productService.createProduct(data);
+    console.log("product---------------------",product)
     const syncId = product.syncId || data.syncId;
+    console.log("syncId------------------------",syncId)
+
     const syncSource = req.headers["x-sync-source"] || "mongo";
+    console.log("syncSource------------------",syncSource)
 
     const mysqlSyncEnabled = Boolean(MYSQL_BASE_URL);
+    console.log("mysqlSyncEnabled---------------",mysqlSyncEnabled)
     const shouldSyncToMySQL =
       mysqlSyncEnabled && syncSource !== "mysql" && product?._id;
 
