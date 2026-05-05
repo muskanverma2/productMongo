@@ -16,39 +16,23 @@
 
 // module.exports = app;
 
-require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
 
-console.log("🚀 App starting...");
-console.log("ENV:", {
-  PORT: process.env.PORT,
-  MONGO_URI: process.env.MONGO_URI,
+const routes = require("./src/routes/v1");
+
+const app = express();
+
+app.use(cors());
+
+// ✅ Increase payload limit (NO logic change)
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
+
+app.use("/v1", routes);
+
+app.get("/", (req, res) => {
+  res.send("🚀 Express Mongo API Running...");
 });
 
-process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err);
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err);
-});
-
-const app = require("./app"); // ⚠️ MUST be correct path
-const connectDB = require("./config/db");
-
-const PORT = process.env.PORT || 5000;
-
-(async () => {
-  try {
-    console.log("⏳ Connecting DB...");
-    await connectDB();
-
-    console.log("✅ DB Connected");
-
-    app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error("❌ Startup Error:", err);
-    process.exit(1);
-  }
-})();
+module.exports = app;
