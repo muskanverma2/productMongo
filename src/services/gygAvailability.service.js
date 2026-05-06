@@ -54,10 +54,79 @@ const buildRetailPrices = (product) => {
 };
 
 // Get availability for a product
+// const getAvailability = async (query) => {
+//   try {
+//     let { productId, fromDateTime, toDateTime } = query;
+//     console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq:-",query)
+//     if (!productId || !fromDateTime || !toDateTime) {
+//       return {
+//         data: null,
+//         errorCode: 'VALIDATION_FAILURE',
+//         errorMessage: 'Missing required parameters.'
+//       };
+//     }
+
+//     const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
+//     console.log("startDate------------",startDate)
+//     const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
+//     console.log("endDate-----------------",endDate)
+//     if (!startDate.isValid() || !endDate.isValid()) {
+//       return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Invalid date format.' };
+//     }
+
+//     const product = await Product.findOne({ _id: productId });
+//     console.log("product-----------------------------",product)
+//     if (!product) {
+//       return { errorCode: 'INVALID_PRODUCT', errorMessage:'This activity should be deactivated; not sellable.' };
+//     }
+
+//     let availabilities = [];
+//     try {
+//       availabilities = await getAvailabilityByProductId(productId, startDate.toISOString(), endDate.toISOString());
+//     } catch (err) {
+//       return { data: { availabilities: [] } };
+//     }
+
+//     console.log("availabilities----------------------------------------",availabilities)
+//     if (!availabilities.length) return { data: { availabilities: [] } };
+
+//     const now = dayjs.utc();
+//     const validAvailabilities = availabilities.filter(a => {
+//       if (!a.date || !a.bookingCutOffTime) return true;
+//       const cutoff = dayjs.utc(a.date).subtract(a.bookingCutOffTime, 'second');
+//       return now.isBefore(cutoff);
+//     });
+
+//     const response = validAvailabilities.map(a => ({
+//       productId: a.productId,
+//       dateTime: dayjs.utc(a.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+//       cutoffSeconds: a.bookingCutOffTime || 3600,
+//       currency: product.currency || 'EUR',
+//       pricesByCategory: { retailPrices: buildRetailPrices(product) },
+//       vacanciesByCategory: [
+//         { category: 'ADULT', vacancies: 6 },
+//         { category: 'CHILD', vacancies: 4 }
+//       ]
+//     }));
+
+//     return { data: { availabilities: response } };
+//   } catch (error) {
+//     console.error(error);
+//     return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'The request object contains invalid or inconsistent data.' };
+//   }
+// };
+
+
+
+
+
 const getAvailability = async (query) => {
+  console.log("calling this")
   try {
     let { productId, fromDateTime, toDateTime } = query;
-    console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq:-",query)
+
+    console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq:-", query);
+
     if (!productId || !fromDateTime || !toDateTime) {
       return {
         data: null,
@@ -66,31 +135,61 @@ const getAvailability = async (query) => {
       };
     }
 
-    const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
-    console.log("startDate------------",startDate)
-    const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
-    console.log("endDate-----------------",endDate)
-    if (!startDate.isValid() || !endDate.isValid()) {
-      return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Invalid date format.' };
+    // ✅ UNIFIED INVALID PRODUCT RESPONSE (no CastError, no format exposure)
+    const invalidProductResponse = {
+      errorCode: 'INVALID_PRODUCT',
+      errorMessage: 'This activity should be deactivated; not sellable.'
+    };
+
+    // 🔥 STEP 1: block invalid ObjectId BEFORE mongoose query
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return invalidProductResponse;
     }
 
-    const product = await Product.findOne({ _id: productId });
-    console.log("product-----------------------------",product)
+    const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
+    const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
+
+    console.log("startDate------------", startDate);
+    console.log("endDate-----------------", endDate);
+
+    if (!startDate.isValid() || !endDate.isValid()) {
+      return {
+        data: null,
+        errorCode: 'VALIDATION_FAILURE',
+        errorMessage: 'Invalid date format.'
+      };
+    }
+
+    // 🔥 STEP 2: safe DB query
+    const product = await Product.findById(productId);
+
+    console.log("product-----------------------------", product);
+
+    // 🔥 STEP 3: same response for "not found"
     if (!product) {
-      return { errorCode: 'INVALID_PRODUCT', errorMessage:'This activity should be deactivated; not sellable.' };
+      console.log("enter in if case")
+      return invalidProductResponse;
     }
 
     let availabilities = [];
     try {
-      availabilities = await getAvailabilityByProductId(productId, startDate.toISOString(), endDate.toISOString());
+      availabilities = await getAvailabilityByProductId(
+        productId,
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
     } catch (err) {
       return { data: { availabilities: [] } };
     }
 
-    console.log("availabilities----------------------------------------",availabilities)
-    if (!availabilities.length) return { data: { availabilities: [] } };
+    console.log("availabilities----------------------------------------", availabilities);
+
+    if (!availabilities.length) {
+      return { data: { availabilities: [] } };
+    }
 
     const now = dayjs.utc();
+
     const validAvailabilities = availabilities.filter(a => {
       if (!a.date || !a.bookingCutOffTime) return true;
       const cutoff = dayjs.utc(a.date).subtract(a.bookingCutOffTime, 'second');
@@ -110,9 +209,14 @@ const getAvailability = async (query) => {
     }));
 
     return { data: { availabilities: response } };
+
   } catch (error) {
     console.error(error);
-    return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'The request object contains invalid or inconsistent data.' };
+    return {
+      data: null,
+      errorCode: 'VALIDATION_FAILURE',
+      errorMessage: 'The request object contains invalid or inconsistent data.'
+    };
   }
 };
 
@@ -177,16 +281,12 @@ const getAvailability = async (query) => {
 
 
 
-
 const createReservation = async (input) => {
   try {
     const body = input?.data || input;
     const { productId, dateTime, bookingItems, gygBookingReference } = body;
-
     console.log("body:--------------------------", body);
-
     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
-
     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
       throw {
         statusCode: 400,
@@ -194,8 +294,6 @@ const createReservation = async (input) => {
         errorMessage: 'Missing required parameters.'
       };
     }
-
-    // ✅ 🔥 FIX: Prevent CastError
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       throw {
         statusCode: 400,
@@ -203,18 +301,14 @@ const createReservation = async (input) => {
         errorMessage: "Invalid product ID format"
       };
     }
-
     const product = await Product.findById(productId);
-
     console.log("product-------------------------", product);
-
     if (!product) {
       throw {
         errorCode: "INVALID_PRODUCT",
         errorMessage: "This activity should be deactivated; not sellable."
       };
     }
-
     let availabilities = [];
     try {
       availabilities = await getAvailabilityByProductId(
@@ -229,7 +323,7 @@ const createReservation = async (input) => {
       };
     }
 
-    console.log("AAAAAAAAAAAAAAAAAAAAAAAA", availabilities);
+    console.log("availabilities---------------------", availabilities);
 
     if (!availabilities.length) {
       return {
