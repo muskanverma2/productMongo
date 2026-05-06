@@ -3,7 +3,7 @@ const { Recurrence,Product } = require("../models");
 const axios = require("axios");
 const { randomUUID } = require("crypto");
 // const MYSQL_BASE_URL = "http://192.168.29.95:3000/kan/product";
-const MYSQL_BASE_URL = "http://192.168.29.178:3000/kan/product";
+const MYSQL_BASE_URL = "https://wha.bukingmaster.com/kan/product";
 
 const createProduct = async (req, res) => {
   try {
