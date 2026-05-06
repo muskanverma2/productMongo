@@ -5,7 +5,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
-// Helper to normalize category labels
+
 const normalizeCategory = (label = '') => {
   const l = label.toLowerCase();
   if (l.includes('adult')) return 'ADULT';
@@ -13,20 +13,7 @@ const normalizeCategory = (label = '') => {
   return null;
 };
 
-// Build retail prices from product rates
-// const buildRetailPrices = (product) => {
-//   const priceMap = {};
-//   product.rates.forEach(rate => {
-//     rate.price.forEach(p => {
-//       const category = normalizeCategory(p.label);
-//       if (!category) return;
-//       const price = Number(p.fields?.[0]?.pricePerParticipant);
-//       if (isNaN(price)) return;
-//       priceMap[category] = price;
-//     });
-//   });
-//   return Object.entries(priceMap).map(([category, price]) => ({ category, price }));
-// };
+
 
 const buildRetailPrices = (product) => {
   const priceMap = {};
@@ -53,80 +40,11 @@ const buildRetailPrices = (product) => {
   }));
 };
 
-// Get availability for a product
-// const getAvailability = async (query) => {
-//   try {
-//     let { productId, fromDateTime, toDateTime } = query;
-//     console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq:-",query)
-//     if (!productId || !fromDateTime || !toDateTime) {
-//       return {
-//         data: null,
-//         errorCode: 'VALIDATION_FAILURE',
-//         errorMessage: 'Missing required parameters.'
-//       };
-//     }
-
-//     const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
-//     console.log("startDate------------",startDate)
-//     const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
-//     console.log("endDate-----------------",endDate)
-//     if (!startDate.isValid() || !endDate.isValid()) {
-//       return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Invalid date format.' };
-//     }
-
-//     const product = await Product.findOne({ _id: productId });
-//     console.log("product-----------------------------",product)
-//     if (!product) {
-//       return { errorCode: 'INVALID_PRODUCT', errorMessage:'This activity should be deactivated; not sellable.' };
-//     }
-
-//     let availabilities = [];
-//     try {
-//       availabilities = await getAvailabilityByProductId(productId, startDate.toISOString(), endDate.toISOString());
-//     } catch (err) {
-//       return { data: { availabilities: [] } };
-//     }
-
-//     console.log("availabilities----------------------------------------",availabilities)
-//     if (!availabilities.length) return { data: { availabilities: [] } };
-
-//     const now = dayjs.utc();
-//     const validAvailabilities = availabilities.filter(a => {
-//       if (!a.date || !a.bookingCutOffTime) return true;
-//       const cutoff = dayjs.utc(a.date).subtract(a.bookingCutOffTime, 'second');
-//       return now.isBefore(cutoff);
-//     });
-
-//     const response = validAvailabilities.map(a => ({
-//       productId: a.productId,
-//       dateTime: dayjs.utc(a.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
-//       cutoffSeconds: a.bookingCutOffTime || 3600,
-//       currency: product.currency || 'EUR',
-//       pricesByCategory: { retailPrices: buildRetailPrices(product) },
-//       vacanciesByCategory: [
-//         { category: 'ADULT', vacancies: 6 },
-//         { category: 'CHILD', vacancies: 4 }
-//       ]
-//     }));
-
-//     return { data: { availabilities: response } };
-//   } catch (error) {
-//     console.error(error);
-//     return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'The request object contains invalid or inconsistent data.' };
-//   }
-// };
-
-
-
 
 
 const getAvailability = async (query) => {
-  console.log("calling this")
   try {
     let { productId, fromDateTime, toDateTime } = query;
-
-    console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqq:-", query);
-
     if (!productId || !fromDateTime || !toDateTime) {
       return {
         data: null,
@@ -134,24 +52,15 @@ const getAvailability = async (query) => {
         errorMessage: 'Missing required parameters.'
       };
     }
-
-    // ✅ UNIFIED INVALID PRODUCT RESPONSE (no CastError, no format exposure)
     const invalidProductResponse = {
       errorCode: 'INVALID_PRODUCT',
       errorMessage: 'This activity should be deactivated; not sellable.'
     };
-
-    // 🔥 STEP 1: block invalid ObjectId BEFORE mongoose query
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return invalidProductResponse;
     }
-
     const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
     const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
-
-    console.log("startDate------------", startDate);
-    console.log("endDate-----------------", endDate);
-
     if (!startDate.isValid() || !endDate.isValid()) {
       return {
         data: null,
@@ -159,18 +68,10 @@ const getAvailability = async (query) => {
         errorMessage: 'Invalid date format.'
       };
     }
-
-    // 🔥 STEP 2: safe DB query
     const product = await Product.findById(productId);
-
-    console.log("product-----------------------------", product);
-
-    // 🔥 STEP 3: same response for "not found"
     if (!product) {
-      console.log("enter in if case")
       return invalidProductResponse;
     }
-
     let availabilities = [];
     try {
       availabilities = await getAvailabilityByProductId(
@@ -181,21 +82,16 @@ const getAvailability = async (query) => {
     } catch (err) {
       return { data: { availabilities: [] } };
     }
-
-    console.log("availabilities----------------------------------------", availabilities);
-
     if (!availabilities.length) {
       return { data: { availabilities: [] } };
     }
 
     const now = dayjs.utc();
-
     const validAvailabilities = availabilities.filter(a => {
       if (!a.date || !a.bookingCutOffTime) return true;
       const cutoff = dayjs.utc(a.date).subtract(a.bookingCutOffTime, 'second');
       return now.isBefore(cutoff);
     });
-
     const response = validAvailabilities.map(a => ({
       productId: a.productId,
       dateTime: dayjs.utc(a.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
@@ -220,72 +116,10 @@ const getAvailability = async (query) => {
   }
 };
 
-// Create a reservation
-// const createReservation = async (input) => {
-//   try {
-//     const body = input?.data || input;
-//     const { productId, dateTime, bookingItems, gygBookingReference } = body;
-//     console.log("body:--------------------------",body)
-//     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
-
-//     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
-//       throw { statusCode: 400, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Missing required parameters.' };
-//     }
-
-//     const product = await Product.findOne({ _id: productId });
-//     console.log("product-------------------------",product)
-//     if (!product) throw { errorCode:"INVALID_PRODUCT", errorMessage:"This activity should be deactivated; not sellable." };
-
-//     let availabilities = [];
-//     try {
-//       availabilities = await getAvailabilityByProductId(productId, startDate.toISOString(), startDate.toISOString());
-//     } catch (err) {
-//       throw { errorCode: 'NO_AVAILABILITY', errorMessage: 'This activity is sold out; requested 3; available 0.' };
-//     }
-//  console.log("AAAAAAAAAAAAAAAAAAAAAAAA",availabilities)
-//     if (!availabilities.length) {
-//       return { data: { errorCode: 'NO_AVAILABILITY', errorMessage: 'No availability for the selected date.' } };
-//     }
-
-//     for (const item of bookingItems) {
-//       if (item.category === 'STUDENT') {
-//         throw { statusCode: 400, errorCode: 'INVALID_TICKET_CATEGORY', errorMessage: 'Ticket category STUDENT is not supported for this product', ticketCategory: 'STUDENT' };
-//       }
-//     }
-
-//     const maxAllowed = product.maxParticipants ?? 3;
-//     const totalParticipants = bookingItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
-//     if (totalParticipants > maxAllowed) {
-//       throw { statusCode: 400, errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION', errorMessage: `Maximum ${maxAllowed} participants allowed.`, participantsConfiguration: { min: 1, max: maxAllowed } };
-//     }
-
-//     const reservationReference = `GYG${Date.now()}${Math.floor(Math.random() * 10000)}`;
-
-//     await GygReserve.create({
-//       productId,
-//       dateTime,
-//       bookingItems,
-//       reservationReference,
-//       gygBookingReference
-//     });
-
-//     return {
-//       reservationReference,
-//       reservationExpiration: new Date(Date.now() + 15 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
-//     };
-//   } catch (err) {
-//     console.error('GYG reservation error:', err);
-//     throw err;
-//   }
-// };
-
-
-
 const createReservation = async (input) => {
   try {
     const body = input?.data || input;
     const { productId, dateTime, bookingItems, gygBookingReference } = body;
-    console.log("body:--------------------------", body);
     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
       throw {
@@ -302,7 +136,6 @@ const createReservation = async (input) => {
       };
     }
     const product = await Product.findById(productId);
-    console.log("product-------------------------", product);
     if (!product) {
       throw {
         errorCode: "INVALID_PRODUCT",
@@ -322,9 +155,6 @@ const createReservation = async (input) => {
         errorMessage: 'This activity is sold out; requested 3; available 0.'
       };
     }
-
-    console.log("availabilities---------------------", availabilities);
-
     if (!availabilities.length) {
       return {
         data: {
@@ -346,7 +176,6 @@ const createReservation = async (input) => {
     }
 
     const maxAllowed = product.maxParticipants ?? 3;
-
     const totalParticipants = bookingItems.reduce(
       (sum, item) => sum + Number(item.count || 0),
       0
@@ -360,9 +189,7 @@ const createReservation = async (input) => {
         participantsConfiguration: { min: 1, max: maxAllowed }
       };
     }
-
     const reservationReference = `GYG${Date.now()}${Math.floor(Math.random() * 10000)}`;
-
     await GygReserve.create({
       productId,
       dateTime,
@@ -370,7 +197,6 @@ const createReservation = async (input) => {
       reservationReference,
       gygBookingReference
     });
-
     return {
       reservationReference,
       reservationExpiration: new Date(Date.now() + 15 * 60 * 1000)
@@ -384,7 +210,7 @@ const createReservation = async (input) => {
   }
 };
 
-// Create hardcoded GYG availability
+
 const createGYGAvailability = async () => ({
   productId: "1c33337daeed4274bded",
   timeAvailable: { type: "TIME_PERIOD", operationHours: { from: "09:00", to: "18:00" } },
@@ -407,12 +233,12 @@ const createGYGAvailabilityone = async () => ({
   dateAvailability: { from: "2025-12-21", to: "2025-12-31" }
 });
 
-// Cancel a reservation
+
 const cancelReservation = async (data) => ({
   data: { reservationReference: `GYG${Date.now()}${Math.floor(Math.random() * 100000)}` }
 });
 
-// Create a booking
+
 const createBooking = async (bookingData) => {
   try {
     const payload = bookingData?.data;
@@ -439,7 +265,7 @@ const createBooking = async (bookingData) => {
   }
 };
 
-// Cancel a booking
+
 const cancelBooking = async (body) => {
   try {
     const payload = body?.data;
@@ -459,7 +285,7 @@ const cancelBooking = async (body) => {
   }
 };
 
-// Get all bookings
+
 const getAllGygBookings = async () => {
   try {
     const bookings = await GygBooking.find({}).sort({ createdAt: -1 });

@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 let cachedConnection = null;
 
 const connectDB = async () => {
-  // Return cached connection if available (for Lambda)
   if (cachedConnection && mongoose.connection.readyState === 1) {
     return cachedConnection;
   }
@@ -18,7 +17,6 @@ const connectDB = async () => {
     return connection;
   } catch (error) {
     console.error("❌ MongoDB Connection Error:", error.message);
-    // Don't exit process in Lambda - throw error instead
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }

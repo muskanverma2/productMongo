@@ -27,7 +27,7 @@ const gygReserveSchema = new Schema(
   },
   {
     collection: "gygReserve",
-    timestamps: true, // automatically adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 

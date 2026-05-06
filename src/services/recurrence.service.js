@@ -1,6 +1,4 @@
 const { Recurrence, Availability } = require('../models');
-
-// Create a recurrence
 const createRecurrence = async (data) => {
     try {
         const recurrence = await Recurrence.create(data);
@@ -12,15 +10,14 @@ const createRecurrence = async (data) => {
     }
 };
 
-// Update recurrence by ID
+
 const updateRecurrenceById = async (id, updateData) => {
     try {
         const recurrence = await Recurrence.findById(id);
         if (!recurrence) {
             throw new Error('Recurrence not found');
         }
-
-        Object.assign(recurrence, updateData); // Apply updates
+        Object.assign(recurrence, updateData); 
         await recurrence.save();
         return recurrence;
     } catch (error) {
@@ -28,7 +25,7 @@ const updateRecurrenceById = async (id, updateData) => {
     }
 };
 
-// Get recurrence by ID
+
 const getRecurrenceById = async (id) => {
     try {
         const recurrence = await Recurrence.findById(id).lean();
@@ -41,7 +38,7 @@ const getRecurrenceById = async (id) => {
     }
 };
 
-// Get all recurrences with status true
+
 const getAllRecurrences = async () => {
     try {
         const recurrences = await Recurrence.find({ status: true }).lean();
@@ -51,47 +48,42 @@ const getAllRecurrences = async () => {
     }
 };
 
-// Soft delete recurrence by ID and update related availability
+
 const deleteRecurrenceById = async (id) => {
     try {
         const recurrence = await Recurrence.findById(id);
         if (!recurrence) {
             throw new Error('Recurrence not found');
         }
-
         recurrence.status = false;
         await recurrence.save();
-
         await Availability.updateMany(
             { recurrenceRuleIds: id },
             { status: false }
         );
-
         return recurrence;
     } catch (error) {
         throw new Error(error.message);
     }
 };
 
-// Delete all recurrences by productId
 const deleteRecurrenceByProductId = async (productId) => {
     try {
         const result = await Recurrence.deleteMany({ productId });
-        return result.deletedCount; // Number of documents deleted
+        return result.deletedCount; 
     } catch (error) {
         console.error('Error in recurrenceService:', error);
         throw error;
     }
 };
 
-// Get recurrences by productId with status true
+
 const getRecurrenceByProductId = async (productId) => {
     try {
         const recurrences = await Recurrence.find({ productId, status: true }).lean();
         if (!recurrences || recurrences.length === 0) {
             throw new Error('RecurrenceProduct not found');
         }
-        console.log("recurrences-----------------", recurrences);
         return recurrences;
     } catch (error) {
         throw new Error(error.message);

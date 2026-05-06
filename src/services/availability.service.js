@@ -1,8 +1,6 @@
 const { Availability, Recurrence } = require("../models"); // Mongoose models
 const recurrenceService = require("./recurrence.service");
 const productService = require("./product.service");
-
-// Create Availability
 const createAvailability = async (availabilityData) => {
   try {
     const newAvailability = await Availability.create(availabilityData);
@@ -12,49 +10,41 @@ const createAvailability = async (availabilityData) => {
   }
 };
 
-// Update Availability
 const updateAvailability = async (id, availabilityData) => {
   try {
     const availability = await Availability.findById(id);
-
     if (!availability) return null;
-
     Object.assign(availability, availabilityData);
     await availability.save();
-
     return availability;
   } catch (error) {
     throw new Error(`Error updating availability: ${error.message}`);
   }
 };
 
-// Get Availability by ID
+
 const getAvailabilityById = async (id) => {
   try {
     const availability = await Availability.findById(id)
-      .populate("recurrenceRuleIds") // populate recurrence
+      .populate("recurrenceRuleIds") 
       .lean();
-
     if (!availability) throw new Error("Availability not found");
-
     return availability;
   } catch (error) {
     throw new Error(error.message);
   }
 };
 
-// Get all Availability with optional date filter
+
 const getAllAvailability = async (startDate, endDate) => {
   try {
     const filter = { status: true };
-
     if (startDate && endDate) {
       filter.date = {
         $gte: startDate,
         $lte: endDate,
       };
     }
-
     const availabilities = await Availability.find(filter)
       .populate("recurrenceRuleIds")
       .lean();
@@ -75,7 +65,7 @@ const getAllAvailability = async (startDate, endDate) => {
   }
 };
 
-// Delete Availability by ID (soft delete)
+
 const deleteAvailabilityById = async (id) => {
   try {
     const availability = await Availability.findById(id);
@@ -89,7 +79,7 @@ const deleteAvailabilityById = async (id) => {
   }
 };
 
-// Delete Availability by productId or recurrenceRuleIds
+
 const deleteAvailability = async (productId, recurrenceRuleIds) => {
   try {
     const filter = {};
@@ -112,7 +102,7 @@ const deleteAvailability = async (productId, recurrenceRuleIds) => {
   }
 };
 
-// Delete Availability by recurrenceRuleIds
+
 const deleteAvailabilityProductId = async (recurrenceRuleIds) => {
   try {
     const result = await Availability.deleteMany({ recurrenceRuleIds });
@@ -122,23 +112,16 @@ const deleteAvailabilityProductId = async (recurrenceRuleIds) => {
   }
 };
 
-// Get Availability by Product ID with optional date filter
+
 const getAvailabilityByProductId = async (productId, startDate, endDate) => {
-  console.log("this endpoint is calling")
+
   try {
-    console.log("this try  is calling")
+    
     const recurrenceForProductIds = await recurrenceService.getRecurrenceByProductId(productId);
-    console.log("recurrenceForProductIds-------------------------",recurrenceForProductIds)
     const product = await productService.getProductById(productId);
-    console.log("productAvailability---------------------------",product)
-
     if (!product) throw new Error("Product not found");
-
     const times = product.times;
-    console.log("times-------------------------",times)
     const recurrenceController = require("../controllers/recurrence.controller");
-
-    // generate availability for each recurrence
     const availabilities = await Promise.all(
       recurrenceForProductIds.map(async (recurrence) => {
         const recurrenceId = recurrence._id || recurrence.id;
@@ -146,10 +129,6 @@ const getAvailabilityByProductId = async (productId, startDate, endDate) => {
         return await recurrenceController.createAvailabilityForRecurrence(data, times, recurrenceId);
       })
     );
-
-    console.log("availabilities----------------------",availabilities)
-
-    // flatten and filter by startDate/endDate
     const filteredAvailabilities = availabilities.flat().filter((availability) => {
       const availabilityDate = new Date(availability.date);
       if (startDate && endDate) {
@@ -165,9 +144,6 @@ const getAvailabilityByProductId = async (productId, startDate, endDate) => {
       }
       return true;
     });
-
-    console.log("filteredAvailabilities-------------------------------------------",filteredAvailabilities)
-
     if (!filteredAvailabilities.length)
       throw new Error("No availability found for the given product within the specified date range");
 

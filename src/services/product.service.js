@@ -21,9 +21,6 @@ const createProduct = async (productData) => {
   }
 };
 
-// ===================================================
-// UPDATE PRODUCT (same logic)
-// ===================================================
 const updateProduct = async (id, updateData) => {
   try {
     const product = await Product.findById(id);
@@ -40,41 +37,16 @@ const updateProduct = async (id, updateData) => {
   }
 };
 
-
-// const getProductById = async (id) => {
-//   try {
-//     const organizedData = await Product.findById(id);
-
-//     console.log("organizedData--------------------", organizedData);
-
-//     if (!organizedData) {
-//       return null;
-//     }
-
-//     const productData = organizedData.toObject();
-//     return productData;
-//   } catch (error) {
-//     console.error("Error fetching product by ID:", error);
-//     throw error;
-//   }
-// };
-
 const mongoose = require("mongoose");
-
 const getProductById = async (id) => {
   try {
     let organizedData;
-
-    // ✅ If valid Mongo ObjectId → search by _id
     if (mongoose.Types.ObjectId.isValid(id)) {
       organizedData = await Product.findById(id);
     } 
-    // ✅ Otherwise → treat as MySQL UUID
     else {
       organizedData = await Product.findOne({ mysqlProductId: id });
     }
-
-    console.log("organizedData--------------------", organizedData);
 
     if (!organizedData) {
       return null;
@@ -291,9 +263,7 @@ const getAllProductWithSi = async (page, limit) => {
   }
 };
 
-// ===================================================
-// DELETE PRODUCT (soft delete same logic)
-// ===================================================
+
 const deleteProduct = async (id) => {
   try {
     const product = await Product.findById(id);
@@ -361,7 +331,7 @@ const getProductBySyncId = async (syncId) => {
 };
 
 
-// services/product.service.js
+
 const deleteProductBySyncId = async (syncId) => {
   const deletedProduct = await Product.findOneAndDelete({ syncId });
 
@@ -401,14 +371,6 @@ const hardReplaceMongoProduct = async (productData) => {
     throw new Error("Failed to sync product to Mongo: " + error.message);
   }
 };
-
-
-
-
-
-
-
-
 
 module.exports = {
   createProduct,

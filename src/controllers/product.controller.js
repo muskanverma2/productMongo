@@ -8,20 +8,13 @@ const MYSQL_BASE_URL = "http://192.168.29.178:3000/kan/product";
 const createProduct = async (req, res) => {
   try {
     const data = { ...req.body };
-    console.log("data--------------------",data)
     if (!data.syncId) {
       data.syncId = randomUUID();
     }
     const product = await productService.createProduct(data);
-    console.log("product---------------------",product)
     const syncId = product.syncId || data.syncId;
-    console.log("syncId------------------------",syncId)
-
     const syncSource = req.headers["x-sync-source"] || "mongo";
-    console.log("syncSource------------------",syncSource)
-
     const mysqlSyncEnabled = Boolean(MYSQL_BASE_URL);
-    console.log("mysqlSyncEnabled---------------",mysqlSyncEnabled)
     const shouldSyncToMySQL =
       mysqlSyncEnabled && syncSource !== "mysql" && product?._id;
 
@@ -127,14 +120,10 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-
     const deletedProduct = await productService.deleteProduct(id);
-
     if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
-
- 
     try {
       const syncId = deletedProduct.syncId;
 
@@ -151,7 +140,6 @@ const deleteProduct = async (req, res) => {
         mysqlErr.response?.data || mysqlErr.message
       );
     }
-
     return res.status(200).json({
       message: "Product deleted successfully",
       data: deletedProduct,
@@ -173,7 +161,6 @@ const getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-
     return res.status(200).json({
       message: "Product fetched successfully",
       data: product,
@@ -195,9 +182,6 @@ const getAllProducts = async (req, res) => {
       sortOrder = "DESC",
       falsePagination = false,
     } = req.query;
-    console.log("req.query-----------------------------------------",req.query)
-
-    console.log("hello")
     const products = await productService.getAllProducts(
       page,
       limit,
@@ -222,10 +206,7 @@ const getAllProducts = async (req, res) => {
 const getAllProductWithSi = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    console.log("req.query-----------------------------------------",req.query)
-
     const products = await productService.getAllProductWithSi(page, limit);
-
     return res.status(200).json({
       message: "Products fetched successfully",
       data: products,
@@ -242,16 +223,13 @@ const getAllProductWithSi = async (req, res) => {
 const getProductBySyncId = async (req, res) => {
   try {
     const { syncId } = req.params;
-
-    const product = await productService.getProductBySyncId(syncId); // Mongo service
-
+    const product = await productService.getProductBySyncId(syncId);
     if (!product) {
       return res.status(404).json({
         success: false,
         message: "Product not found",
       });
     }
-
     return res.status(200).json({
       success: true,
       message: "Product fetched successfully (Mongo)",
@@ -267,16 +245,13 @@ const getProductBySyncId = async (req, res) => {
 };
 
 
-
 const updateProductBySyncId = async (req, res) => {
   try {
     const { syncId } = req.params;
     const updateData = req.body;
     const updatedProduct =
-      await productService.updateProductBySyncId(syncId, updateData);
-
+    await productService.updateProductBySyncId(syncId, updateData);
     const syncSource = req.headers["x-sync-source"];
-
     if (syncSource !== "mysql") {
       try {
         await axios.put(
@@ -297,7 +272,6 @@ const updateProductBySyncId = async (req, res) => {
         );
       }
     }
-
     return res.status(200).json({
       success: true,
       message: "Product updated successfully (Mongo)",
@@ -313,62 +287,12 @@ const updateProductBySyncId = async (req, res) => {
 
 
 
-// const deleteProductBySyncId = async (req, res) => {
-//   try {
-//     const { syncId } = req.params;
-//     const deletedProduct = await Product.findOneAndDelete({ syncId });
-//     if (!deletedProduct) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Product not found in Mongo",
-//       });
-//     }
-//     const syncSource = req.headers["x-sync-source"];
-//     if (syncSource !== "mysql") {
-//       try {
-//         await axios.delete(
-//           `${MYSQL_BASE_URL}/products/sync/${syncId}`,
-//           {
-//             headers: { "x-sync-source": "mongo" },
-//           }
-//         );
-//         console.log("✅ MySQL hard delete synced (product)");
-//       } catch (mysqlErr) {
-//         console.error(
-//           "MySQL sync error (product hard delete):",
-//           mysqlErr.response?.data || mysqlErr.message
-//         );
-//       }
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Product deleted successfully (Mongo)",
-//       // data: deletedProduct,
-//     });
-
-//   } catch (error) {
-//     console.error("Mongo controller deleteProductBySyncId error:", error);
-//     return res.status(400).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
-// controllers/product.controller.js
-
 
 const deleteProductBySyncId = async (req, res) => {
   try {
     const { syncId } = req.params;
-
-    // 🔹 Call SERVICE (not Mongo directly)
     const deletedProduct = await productService.deleteProductBySyncId(syncId);
-
-    // 🔹 Sync to MySQL only if request not from MySQL
     const syncSource = req.headers["x-sync-source"];
-
     if (syncSource !== "mysql") {
       try {
         await axios.delete(
@@ -385,7 +309,6 @@ const deleteProductBySyncId = async (req, res) => {
         );
       }
     }
-
     return res.status(200).json({
       success: true,
       message: "Product deleted successfully (Mongo)",
@@ -394,7 +317,6 @@ const deleteProductBySyncId = async (req, res) => {
 
   } catch (error) {
     console.error("Mongo controller deleteProductBySyncId error:", error.message);
-
     return res.status(error.message === "Product not found" ? 404 : 400).json({
       success: false,
       message: error.message,
@@ -402,47 +324,6 @@ const deleteProductBySyncId = async (req, res) => {
   }
 };
 
-
-
-
-
-
-// const hardSyncFromMySQL = async (req, res) => {
-//   const { syncId } = req.params;
-
-//   try {
-//     const response = await axios.get(
-//       `${MYSQL_BASE_URL}/sync/${syncId}`,
-//       { headers: { "x-sync-source": "mongo" } }
-//     );
-
-//     const mysqlProduct = response.data;
-
-//     if (!mysqlProduct) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Product not found in MySQL",
-//       });
-//     }
-
-//     const mongoProduct =  await productService.hardReplaceMongoProduct(mysqlProduct);
-
-//     return res.json({
-//       success: true,
-//       message: "Hard sync completed",
-//       data: mongoProduct,
-//     });
-
-//   } catch (error) {
-//     console.error("Hard sync error:", error.message);
-//     return res.status(500).json({
-//       success: false,
-//       message: error.response?.status === 404 
-//         ? "Product not found in MySQL" 
-//         : error.message,
-//     });
-//   }
-// };
 
 const hardSyncFromMySQL = async (req, res) => {
   const { syncId } = req.params;
@@ -452,19 +333,14 @@ const hardSyncFromMySQL = async (req, res) => {
       `${MYSQL_BASE_URL}/sync/${syncId}`,
       { headers: { "x-sync-source": "mongo" } }
     );
-
-    // ✅ FIX HERE
     const mysqlProduct = response.data.data;
-
     if (!mysqlProduct) {
       return res.status(404).json({
         success: false,
         message: "Product not found in MySQL",
       });
     }
-
     const mongoProduct = await productService.hardReplaceMongoProduct(mysqlProduct);
-
     return res.json({
       success: true,
       message: "Hard sync completed",
@@ -480,19 +356,12 @@ const hardSyncFromMySQL = async (req, res) => {
         message: "Product not found in MySQL",
       });
     }
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
-
-
-
-
-
 
 module.exports = {
   createProduct,

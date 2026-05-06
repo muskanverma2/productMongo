@@ -1,10 +1,5 @@
-
-
-// module.exports = Recurrence;
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-
-// Counter schema for auto-increment
 const counterSchema = new Schema({
   id: { type: String, required: true, unique: true },
   seq: { type: Number, default: 0 },
@@ -93,8 +88,6 @@ const recurrenceSchema = new Schema(
     timestamps: true,
   }
 );
-
-// --- Virtual for associated availabilities ---
 recurrenceSchema.virtual("availabilities", {
   ref: "Availability",
   localField: "_id",
@@ -103,8 +96,6 @@ recurrenceSchema.virtual("availabilities", {
 
 recurrenceSchema.set("toJSON", { virtuals: true });
 recurrenceSchema.set("toObject", { virtuals: true });
-
-// --- Auto-increment index without using next() ---
 recurrenceSchema.pre("save", async function () {
   if (this.isNew) {
     const counter = await Counter.findOneAndUpdate(

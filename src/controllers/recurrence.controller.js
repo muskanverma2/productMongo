@@ -25,63 +25,26 @@ function getWeekdayName(dayIndex) {
 }
 
 
-
-// const createRecurrence = async (req, res) => {
-//     try {
-//         const data = req.body;
-//         const product = await productService.getProductById(data.productId);
-//         if (!product) throw new Error('Product not found');
-
-//         const times = product.times;
-//         const recurrence = await recurrenceService.createRecurrence(data);
-//         const availabilities = await createAvailabilityForRecurrence(data, times, recurrence._id);
-
-//         return res.status(201).json({
-//             success: true,
-//             message: 'Recurrence and availability created successfully',
-//             data: { recurrence, availabilities },
-//         });
-//     } catch (error) {
-//         console.log(error)
-//         return res.status(500).json({ success: false, message: error.message });
-//     }
-// };
-
-
-
 const createRecurrence = async (req, res) => {
   try {
-
     const data = { ...req.body };
-
     if (!data.syncId) {
       data.syncId = uuidv4();
     }
-
-    // 🔥 Fetch product using incoming ID (UUID)
     const product = await productService.getProductById(data.productId);
-
     if (!product) throw new Error("Product not found");
-
-    // ✅ CRITICAL FIX — use Mongo ObjectId internally
     data.productId = product._id;
-
     const times = product.times;
-
     const recurrence = await recurrenceService.createRecurrence(data);
-
     const recurrenceId = recurrence._id;
     const syncId = recurrence.syncId || data.syncId;
-
     const availabilities = await createAvailabilityForRecurrence(
       data,
       times,
       recurrenceId
     );
-
     const syncSource = req.headers["x-sync-source"] || "mongo";
     const mysqlSyncEnabled = Boolean(MYSQL_BASE_URL);
-
     const shouldSyncToMysql =
       mysqlSyncEnabled && syncSource !== "mysql" && recurrenceId;
 
@@ -97,9 +60,7 @@ const createRecurrence = async (req, res) => {
           },
           { headers: { "x-sync-source": "mongo" } }
         );
-
         console.log("✅ Recurrence + Availability synced to MySQL successfully");
-
       } catch (mysqlErr) {
         console.error(
           "❌ MySQL sync error (recurrence create):",
@@ -116,7 +77,6 @@ const createRecurrence = async (req, res) => {
         console.log("Skipping Mongo → MySQL sync (missing recurrenceId)");
       }
     }
-
     return res.status(201).json({
       success: true,
       message: "Recurrence and availability created successfully",
@@ -134,11 +94,9 @@ const createRecurrence = async (req, res) => {
 };
 
 
-
-// --- Availability Creation for Recurrence ---
  
 const createAvailabilityForRecurrence = async (data, times, recurrenceId) => {
-console.log("muskanone")
+
     let availabilities = [];
 
     if (['FIXED_DATE', 'DATE_RANGE'].includes(data.type)) {
@@ -147,10 +105,8 @@ console.log("muskanone")
         const startDate = new Date(dtStart);
         const endDate = new Date(until);
         const availabilityPromises = [];
-
         if (data.type === 'DATE_RANGE') {
             const daysToCreate = [];
-            console.log("muskanone222222222222222222222222222")
             if (!Array.isArray(byWeekday)) {
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                     daysToCreate.push(new Date(d));
@@ -173,7 +129,7 @@ console.log("muskanone")
                 }
             }
         } else if (data.type === 'FIXED_DATE') {
-            console.log("muskanone99999999999999999999999999999999999")
+
             if (appliesToAllStartTimes) {
                 times.forEach(timeSlot => availabilityPromises.push(createAvailabilityForTimeSlot(timeSlot, startDate, recurrenceId, productId, data)));
             } else {
@@ -188,7 +144,6 @@ console.log("muskanone")
     }
 
     else if (data.type === 'MONTHLY') {
-        console.log("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
         const { productId, bom, appliesToAllStartTimes, affectedStartTimes } = data;
         const { byMonth, byWeekday } = bom;
         const currentYear = new Date().getFullYear();

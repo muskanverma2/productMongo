@@ -16,16 +16,13 @@ const updateAvailability = async (req, res) => {
   try {
     const { id } = req.params;
     const availabilityData = req.body;
-
     const updatedAvailability = await availabilityService.updateAvailability(
       id,
       availabilityData
     );
-
     if (!updatedAvailability) {
       return res.status(404).json({ message: "Availability not found" });
     }
-
     return res.status(200).json(updatedAvailability);
   } catch (error) {
     return res
@@ -38,7 +35,6 @@ const getAvailabilityBy = async (req, res) => {
   try {
     const { id } = req.params;
     const availability = await availabilityService.getAvailabilityById(id);
-
     return res.status(200).json({
       success: true,
       data: availability,
@@ -54,12 +50,10 @@ const getAvailabilityBy = async (req, res) => {
 const getAllAvailability = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-
     const availabilities = await availabilityService.getAllAvailability(
       startDate,
       endDate
     );
-
     return res.status(200).json({
       success: true,
       data: availabilities,
@@ -76,7 +70,6 @@ const deleteAvailability = async (req, res) => {
   try {
     const { id } = req.params;
     await availabilityService.deleteAvailabilityById(id);
-
     return res.status(200).json({
       success: true,
       message: "Availability deleted successfully",
@@ -92,16 +85,13 @@ const deleteAvailability = async (req, res) => {
 const deleteAvailabilityProductId = async (req, res) => {
   try {
     const { recurrenceRuleIds } = req.params;
-
     if (!recurrenceRuleIds) {
       return res.status(400).json({
         success: false,
         message: "Product ID is required",
       });
     }
-
     await availabilityService.deleteAvailabilityProductId(recurrenceRuleIds);
-
     return res.status(200).json({
       success: true,
       message: "Availability deleted successfully",
@@ -118,13 +108,11 @@ const getAvailabilityByProductId = async (req, res) => {
   try {
     const { productId } = req.params;
     const { startDate, endDate } = req.query;
-
     const recurrence = await availabilityService.getAvailabilityByProductId(
       productId,
       startDate,
       endDate
     );
-
     return res.status(200).json({
       success: true,
       message: "RecurrenceProductByProductId fetched successfully",

@@ -1,11 +1,7 @@
 const mongoose = require("mongoose");
 const { randomUUID } = require('crypto');
-
-
-
 const ProductSchema = new mongoose.Schema(
   {
-
     productId: {
       type: String,
       default: null,
@@ -222,12 +218,11 @@ const ProductSchema = new mongoose.Schema(
       default: () => randomUUID(),
     },
   },
- 
     {
     collection: "products",
     timestamps: true,
-    strict: false,          // ✅ allow unknown fields
-    strictQuery: false,     // ✅ allow unknown query filters (optional)
+    strict: false,        
+    strictQuery: false,     
   }
 
 );

@@ -1,6 +1,4 @@
 const mongoose = require("mongoose");
-
-
 const AvailabilitySchema = new mongoose.Schema(
   {
 
@@ -111,17 +109,12 @@ const AvailabilitySchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
-
-
-
 AvailabilitySchema.virtual("product", {
   ref: "Product",
   localField: "productId",
   foreignField: "id",
   justOne: true,
 });
-
-
 AvailabilitySchema.virtual("recurrence", {
   ref: "Recurrence",
   localField: "recurrenceRuleIds",

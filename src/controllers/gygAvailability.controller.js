@@ -1,6 +1,4 @@
 const gygAvailabilityService = require('../services/gygAvailability.service');
-
-// Get availability based on query and auth header
 const getAvailability = async (req, res) => {
   try {
     const response = await gygAvailabilityService.getAvailability(
@@ -15,8 +13,6 @@ const getAvailability = async (req, res) => {
     });
   }
 };
-
-// Create a reservation
 const create = async (req, res) => {
   try {
     const requestData = req.body?.data || req.body;
@@ -33,8 +29,6 @@ const create = async (req, res) => {
     });
   }
 };
-
-// Create GYG Availability (hardcoded)
 const createGYGAvailability = async (req, res) => {
   try {
     const availability = await gygAvailabilityService.createGYGAvailability();
@@ -48,8 +42,6 @@ const createGYGAvailability = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-// Create GYG Availability one (hardcoded)
 const createGYGAvailabilityone = async (req, res) => {
   try {
     const availability = await gygAvailabilityService.createGYGAvailabilityone();
@@ -63,8 +55,6 @@ const createGYGAvailabilityone = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-// Cancel a reservation
 const cancelReservation = async (req, res) => {
   try {
     const data = req.body;
@@ -80,8 +70,6 @@ const cancelReservation = async (req, res) => {
     });
   }
 };
-
-// Create a new booking
 const createBooking = async (req, res) => {
   try {
     const bookingData = req.body;
@@ -97,8 +85,6 @@ const createBooking = async (req, res) => {
     });
   }
 };
-
-// Cancel a booking
 const cancelBooking = async (req, res) => {
   try {
     console.log('Cancel booking request:', req.body);
@@ -115,8 +101,6 @@ const cancelBooking = async (req, res) => {
     });
   }
 };
-
-// Get all GYG bookings
 const getAllGygBookings = async (req, res) => {
   try {
     const bookings = await gygAvailabilityService.getAllGygBookings();
