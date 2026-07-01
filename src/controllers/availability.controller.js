@@ -2,7 +2,9 @@ const { recurrenceService, availabilityService } = require("../services");
 
 const createAvailability = async (req, res) => {
   try {
+    console,log("its running ")
     const availabilityData = req.body;
+    console.log("Availability Data:", availabilityData);
     const result = await availabilityService.createAvailability(availabilityData);
     return res.status(201).json(result);
   } catch (error) {

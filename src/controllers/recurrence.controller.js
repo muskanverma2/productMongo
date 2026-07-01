@@ -4,7 +4,8 @@ const moment = require('moment');
 const { Worker } = require('worker_threads');
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const MYSQL_BASE_URL = "https://wha.bukingmaster.com/kan/recurrence";
+// const MYSQL_BASE_URL = "https://wha.bukingmaster.com/kan/recurrence";
+const MYSQL_BASE_URL = "http://192.168.1.13:3000/kan/recurrence";
 
 
 

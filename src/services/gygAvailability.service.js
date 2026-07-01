@@ -1,4 +1,4 @@
-const { Product, GygBooking,GygReserve} = require('../models');
+const { Product, GygBooking, GygReserve, Recurrence } = require('../models');
 const mongoose = require("mongoose");
 const { getAvailabilityByProductId } = require('../services/availability.service');
 const dayjs = require('dayjs');
@@ -14,6 +14,63 @@ const normalizeCategory = (label = '') => {
 };
 
 
+
+const checkSlotCapacity = async (productId, dateTime) => {
+  const recurrences = await Recurrence.find({ productId, status: true }).lean();
+  const maxCapacity = recurrences.reduce((max, r) => {
+    const cap = Number(r?.maxCapacity);
+    if (isNaN(cap)) return max;
+    return max === null ? cap : Math.max(max, cap);
+  }, null);
+
+  if (maxCapacity === null) return;
+
+  const slotDate = dayjs.utc(String(dateTime).replace(' ', '+')).toDate();
+
+  const reservationCutoff = new Date(Date.now() - 15 * 60 * 1000);
+
+  const [bookingCount, reservationCount] = await Promise.all([
+    GygBooking.countDocuments({ productId, dateTime: slotDate, bookingStatus: { $ne: 'cancelled' } }),
+    GygReserve.countDocuments({
+      productId,
+      dateTime: slotDate,
+      status: { $ne: false },
+      createdAt: { $gte: reservationCutoff }
+    })
+  ]);
+
+  const alreadyBooked = bookingCount + reservationCount;
+
+  if (alreadyBooked + 1 > maxCapacity) {
+    throw {
+      statusCode: 400,
+      errorCode: 'NO_AVAILABILITY',
+      errorMessage: `This activity is sold out; ${alreadyBooked} of ${maxCapacity} bookings already made for this slot.`
+    };
+  }
+};
+
+const getParticipantsLimits = (product) => {
+  const rates = Array.isArray(product?.rates) ? product.rates : [];
+  let min = null;
+  let max = null;
+  rates.forEach((rate) => {
+    const prices = Array.isArray(rate?.price) ? rate.price : [];
+    prices.forEach((p) => {
+      const fields = Array.isArray(p?.fields) ? p.fields : [];
+      fields.forEach((f) => {
+        const fMin = Number(f?.minParticipants);
+        const fMax = Number(f?.maxParticipants);
+        if (!isNaN(fMin)) min = min === null ? fMin : Math.min(min, fMin);
+        if (!isNaN(fMax)) max = max === null ? fMax : Math.max(max, fMax);
+      });
+    });
+  });
+  return {
+    min: min === null ? 1 : min,
+    max: max === null ? (product?.maxParticipants ?? 3) : max
+  };
+};
 
 const buildRetailPrices = (product) => {
   const priceMap = {};
@@ -175,20 +232,22 @@ const createReservation = async (input) => {
       }
     }
 
-    const maxAllowed = product.maxParticipants ?? 3;
+    const { min: minAllowed, max: maxAllowed } = getParticipantsLimits(product);
     const totalParticipants = bookingItems.reduce(
       (sum, item) => sum + Number(item.count || 0),
       0
     );
 
-    if (totalParticipants > maxAllowed) {
+    if (totalParticipants < minAllowed || totalParticipants > maxAllowed) {
       throw {
         statusCode: 400,
         errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION',
-        errorMessage: `Maximum ${maxAllowed} participants allowed.`,
-        participantsConfiguration: { min: 1, max: maxAllowed }
+        errorMessage: `Participants must be between ${minAllowed} and ${maxAllowed}.`,
+        participantsConfiguration: { min: minAllowed, max: maxAllowed }
       };
     }
+    await checkSlotCapacity(productId, dateTime);
+
     const reservationReference = `GYG${Date.now()}${Math.floor(Math.random() * 10000)}`;
     await GygReserve.create({
       productId,
@@ -243,8 +302,29 @@ const createBooking = async (bookingData) => {
   try {
     const payload = bookingData?.data;
     if (!payload) throw new Error('Missing data object');
-    const { gygBookingReference, bookingItems } = payload;
+    const { gygBookingReference, bookingItems, productId, dateTime } = payload;
     if (!Array.isArray(bookingItems) || !bookingItems.length) throw new Error('bookingItems must be a non-empty array');
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      throw new Error('Invalid or missing productId');
+    }
+    const product = await Product.findById(productId);
+    if (!product) throw new Error('This activity should be deactivated; not sellable.');
+
+    const { min: minAllowed, max: maxAllowed } = getParticipantsLimits(product);
+    const totalParticipants = bookingItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
+    if (totalParticipants < minAllowed || totalParticipants > maxAllowed) {
+      throw {
+        statusCode: 400,
+        errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION',
+        errorMessage: `Participants must be between ${minAllowed} and ${maxAllowed}.`,
+        participantsConfiguration: { min: minAllowed, max: maxAllowed }
+      };
+    }
+
+    if (dateTime) {
+      await checkSlotCapacity(productId, dateTime);
+    }
 
     let ticketIndex = 1;
     const tickets = [];
@@ -261,6 +341,7 @@ const createBooking = async (bookingData) => {
     return { data: { bookingReference, tickets } };
   } catch (error) {
     console.error(error);
+    if (error && (error.statusCode || error.errorCode)) throw error;
     throw new Error('Error creating GYG booking: ' + error.message);
   }
 };
