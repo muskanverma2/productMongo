@@ -7,6 +7,7 @@ router.post('/hard', gygAvailabilityController.createGYGAvailability);
 router.post('/hardone', gygAvailabilityController.createGYGAvailabilityone);
 router.post('/1/cancel-reservation', gygAvailabilityController.cancelReservation); 
 router.post('/1/book', gygAvailabilityController.createBooking);
+
 router.post('/1/cancel-booking', gygAvailabilityController.cancelBooking);
 router.get('/gyg-bookings',gygAvailabilityController.getAllGygBookings);
 module.exports = router;
