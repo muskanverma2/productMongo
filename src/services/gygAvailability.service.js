@@ -13,6 +13,12 @@ const normalizeCategory = (label = '') => {
   return null;
 };
 
+const categoryFromAge = (minAge) => {
+  const age = Number(minAge);
+  if (isNaN(age)) return null;
+  return age >= 18 ? 'ADULT' : 'CHILD';
+};
+
 
 
 const checkSlotCapacity = async (productId, dateTime) => {
@@ -81,7 +87,7 @@ const buildRetailPrices = (product) => {
     const prices = Array.isArray(rate?.price) ? rate.price : [];
 
     prices.forEach((p) => {
-      const category = normalizeCategory(p?.label);
+      const category = normalizeCategory(p?.label) || categoryFromAge(p?.minAge ?? p?.fields?.[0]?.minAge);
       if (!category) return;
 
       const price = Number(p?.fields?.[0]?.pricePerParticipant);
@@ -151,7 +157,7 @@ const getAvailability = async (query) => {
     });
     const response = validAvailabilities.map(a => ({
       productId: a.productId,
-      dateTime: dayjs.utc(a.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+      dateTime: dayjs.utc(a.date).format('YYYY-MM-DD[T]00:00:00[Z]'),
       cutoffSeconds: a.bookingCutOffTime || 3600,
       currency: product.currency || 'EUR',
       pricesByCategory: { retailPrices: buildRetailPrices(product) },
